@@ -1,6 +1,6 @@
 # Angle of Repose test case
 
-add_executable(angle_of_repose angle_of_repose.cpp)
+add_executable(angle_of_repose angle_of_repose_gpu.cpp)
 
 target_link_libraries(angle_of_repose
     emsdem
