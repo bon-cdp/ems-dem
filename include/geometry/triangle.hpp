@@ -100,8 +100,8 @@ struct Triangle {
         return false;
     }
 
-    // Closest point on triangle to a given point
-    Vec3 closestPoint(const Vec3& p) const {
+    // Closest point on triangle to a given point (GPU-compatible)
+    __host__ __device__ Vec3 closestPoint(const Vec3& p) const {
         Vec3 ab = v1 - v0;
         Vec3 ac = v2 - v0;
         Vec3 ap = p - v0;

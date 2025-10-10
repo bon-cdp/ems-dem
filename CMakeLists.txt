@@ -46,6 +46,9 @@ file(GLOB_RECURSE ALL_SOURCES
     src/gpu/*.cpp
 )
 
+# Note: Triangle closestPoint needs to be GPU-compatible
+# Already in triangle.hpp as inline functions
+
 add_library(emsdem STATIC ${ALL_SOURCES})
 target_include_directories(emsdem PUBLIC
     ${CMAKE_SOURCE_DIR}/include

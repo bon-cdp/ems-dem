@@ -4,6 +4,7 @@
 #include "gpu_common.hpp"
 #include "core/vec3.hpp"
 #include "geometry/triangle.hpp"
+#include <vector>
 
 namespace emsdem {
 
