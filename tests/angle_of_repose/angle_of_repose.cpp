@@ -55,7 +55,7 @@ int main(int argc, char** argv) {
 
     // ========== Setup Domain ==========
     Domain domain;
-    domain.gravity = Vec3(0, 0, -9.81);
+    domain.gravity = Vec3(0, -9.81, 0);  // Y-down gravity (y-up coordinate system)
     domain.neighbor_skin = 0.5 * particle_radius;  // Neighbor list skin distance
 
     // Add glass beads material
@@ -69,15 +69,15 @@ int main(int argc, char** argv) {
     // ========== Create Geometry ==========
     std::vector<Mesh> walls;
 
-    // Create box container
-    Vec3 box_min(-box_width/2, -box_length/2, 0);
-    Vec3 box_max(box_width/2, box_length/2, box_height);
+    // Create box container (Y-up: box sits on xz plane, extends in +y)
+    Vec3 box_min(-box_width/2, 0, -box_length/2);
+    Vec3 box_max(box_width/2, box_height, box_length/2);
     Mesh box = Primitives::createBox(box_min, box_max, mat_steel);
     walls.push_back(box);
 
-    // Create cylindrical pipe (centered in box)
-    Vec3 pipe_center(0, 0, 0.01);  // Slightly above box bottom
-    Vec3 pipe_axis(0, 0, 1);
+    // Create cylindrical pipe (centered in box, vertical along y-axis)
+    Vec3 pipe_center(0, 0.01, 0);  // Slightly above box bottom
+    Vec3 pipe_axis(0, 1, 0);  // Vertical along y-axis
     Mesh pipe = Primitives::createCylinder(pipe_center, pipe_radius, pipe_height, pipe_axis, 20, mat_steel);
     walls.push_back(pipe);
 
@@ -94,20 +94,20 @@ int main(int argc, char** argv) {
     std::uniform_real_distribution<real> dist_y(-pipe_radius * 0.9, pipe_radius * 0.9);
 
     int num_particles = 0;
-    real z_current = pipe_center.z + 2 * particle_radius;
-    real z_max = pipe_center.z + pipe_height * fill_fraction;
+    real y_current = pipe_center.y + 2 * particle_radius;
+    real y_max = pipe_center.y + pipe_height * fill_fraction;
 
-    while (z_current < z_max) {
+    while (y_current < y_max) {
         for (int attempt = 0; attempt < 100; attempt++) {
             real x = dist_x(gen);
-            real y = dist_y(gen);
+            real z = dist_x(gen);  // Reuse dist_x for z
 
-            // Check if inside pipe radius
-            if (std::sqrt(x*x + y*y) + particle_radius > pipe_radius) {
+            // Check if inside pipe radius (in xz plane)
+            if (std::sqrt(x*x + z*z) + particle_radius > pipe_radius) {
                 continue;
             }
 
-            Vec3 pos(x, y, z_current);
+            Vec3 pos(x, y_current, z);
 
             // Check overlap with existing particles
             bool overlap = false;
@@ -127,7 +127,7 @@ int main(int argc, char** argv) {
             }
         }
 
-        z_current += 1.8 * particle_radius;  // Move up for next layer
+        y_current += 1.8 * particle_radius;  // Move up for next layer
     }
 
     std::cout << "  Created " << num_particles << " particles\n\n";
@@ -200,7 +200,7 @@ int main(int argc, char** argv) {
     real withdraw_time = withdraw_distance / withdraw_speed;
     real phase2_end = current_time + withdraw_time;
 
-    walls[1].velocity = Vec3(0, 0, withdraw_speed);  // Pipe moves upward
+    walls[1].velocity = Vec3(0, withdraw_speed, 0);  // Pipe moves upward (+y direction)
 
     while (current_time < phase2_end) {
         // Clear forces
@@ -232,8 +232,8 @@ int main(int argc, char** argv) {
         if (step % output_interval == 0) {
             real ke = domain.totalKineticEnergy();
             std::cout << "  Step " << step << ", t = " << current_time
-                     << " s, KE = " << ke << " J, pipe z = "
-                     << walls[1].triangles[0].v0.z << " m\n";
+                     << " s, KE = " << ke << " J, pipe y = "
+                     << walls[1].triangles[0].v0.y << " m\n";
 
             VTKWriter::writeParticles(domain, "results/particles", output_count);
             vtk_timesteps.push_back({output_count, current_time});

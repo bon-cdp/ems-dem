@@ -27,7 +27,7 @@ public:
     int step_count;                 // Number of steps completed
 
     // Physical parameters
-    Vec3 gravity;                   // Gravity vector (typically (0, 0, -9.81))
+    Vec3 gravity;                   // Gravity vector (y-up system: (0, -9.81, 0))
 
     // Domain bounds (for spatial binning)
     Vec3 min_bound;
@@ -42,7 +42,7 @@ public:
         : timestep(0),
           current_time(0),
           step_count(0),
-          gravity(0, 0, -9.81),
+          gravity(0, -9.81, 0),  // Y-down gravity
           min_bound(-10, -10, -10),
           max_bound(10, 10, 10),
           neighbor_skin(0),
