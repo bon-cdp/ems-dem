@@ -6,6 +6,9 @@
 
 namespace emsdem {
 
+// Forward declaration
+class Domain;
+
 /**
  * GPU-friendly particle structure (Structure of Arrays)
  * Better memory coalescing than Array of Structures

@@ -3,9 +3,10 @@
 #include "core/material.hpp"
 #include "geometry/mesh.hpp"
 #include "geometry/primitives.hpp"
-#include "cpu/neighbor_search.hpp"
-#include "cpu/contact_forces.hpp"
-#include "cpu/integrator.hpp"
+#include "gpu/gpu_particle.hpp"
+#include "gpu/gpu_neighbor.hpp"
+#include "gpu/gpu_forces.hpp"
+#include "gpu/gpu_integrator.hpp"
 #include "io/vtk_writer.hpp"
 
 #include <iostream>

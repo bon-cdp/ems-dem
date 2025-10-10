@@ -11,7 +11,7 @@ void ParticleDataGPU::copyFromHost(const Domain& domain) {
     std::vector<Vec3> h_pos(n), h_vel(n), h_omega(n), h_force(n), h_torque(n);
     std::vector<real> h_radius(n), h_mass(n), h_inertia(n);
     std::vector<int> h_mat_id(n), h_id(n);
-    std::vector<bool> h_fixed(n);
+    std::vector<char> h_fixed(n);  // Use char instead of bool for GPU transfer
 
     for (int i = 0; i < n; i++) {
         const auto& p = domain.particles[i];
@@ -39,7 +39,7 @@ void ParticleDataGPU::copyFromHost(const Domain& domain) {
     HIP_CHECK(hipMemcpy(inertia, h_inertia.data(), n * sizeof(real), hipMemcpyHostToDevice));
     HIP_CHECK(hipMemcpy(material_id, h_mat_id.data(), n * sizeof(int), hipMemcpyHostToDevice));
     HIP_CHECK(hipMemcpy(id, h_id.data(), n * sizeof(int), hipMemcpyHostToDevice));
-    HIP_CHECK(hipMemcpy(is_fixed, h_fixed.data(), n * sizeof(bool), hipMemcpyHostToDevice));
+    HIP_CHECK(hipMemcpy(is_fixed, h_fixed.data(), n * sizeof(char), hipMemcpyHostToDevice));
 }
 
 void ParticleDataGPU::copyToHost(Domain& domain) const {
