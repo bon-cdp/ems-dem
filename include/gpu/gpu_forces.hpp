@@ -4,6 +4,7 @@
 #include "gpu_common.hpp"
 #include "gpu_particle.hpp"
 #include "gpu_neighbor.hpp"
+#include "gpu_boundary.hpp"
 #include "core/material.hpp"
 
 namespace emsdem {
@@ -53,6 +54,12 @@ namespace gpu_forces {
     void computeParticleParticleForces(ParticleDataGPU& particles,
                                        const NeighborListGPU& neighbors,
                                        const MaterialPropsGPU* materials_gpu);
+
+    // Compute particle-wall contact forces with boundary motion support
+    void computeParticleWallForces(ParticleDataGPU& particles,
+                                   const BoundaryDataGPU* boundaries_gpu,
+                                   int num_boundaries,
+                                   const MaterialPropsGPU* materials_gpu);
 
 } // namespace gpu_forces
 
