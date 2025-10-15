@@ -100,13 +100,15 @@ __global__ void computeContactForcesKernel(
             F_tangential = -t_dir * F_t_mag;
         }
 
-        // Accumulate forces
+        // Accumulate forces (Newton's 3rd law)
+        // Note: Each pair (i,j) is in the neighbor list, so we apply force to i
+        // The neighbor list construction ensures j also gets the opposite force
         Vec3 F_total = F_normal + F_tangential;
-        total_force -= F_total * 0.5;  // 0.5 to avoid double counting (both i and j compute)
+        total_force += F_total;  // Force on particle i FROM particle j
 
-        // Torque
+        // Torque from tangential force
         Vec3 r_contact = -normal * r_i;
-        total_torque -= r_contact.cross(F_tangential) * 0.5;
+        total_torque += r_contact.cross(F_tangential);
     }
 
     // Atomic add to force and torque

@@ -53,9 +53,9 @@ struct MaterialProperties {
         return (m1 * m2) / (m1 + m2);
     }
 
-    // Predefined materials
+    // Predefined materials (PHYSICAL properties - stiff!)
     static MaterialProperties glassBeads() {
-        return MaterialProperties(); // Default is glass beads
+        return MaterialProperties(); // Default is glass beads (E = 70 GPa)
     }
 
     static MaterialProperties sand() {
@@ -66,6 +66,47 @@ struct MaterialProperties {
         m.friction_static = 0.5;
         m.friction_rolling = 0.02;
         m.restitution_coeff = 0.6;
+        return m;
+    }
+
+    // ========== DEM-CALIBRATED MATERIALS ==========
+    // These use EFFECTIVE moduli (much softer) for computational efficiency
+    // while maintaining correct bulk behavior through calibration
+    // Reference: EDEM documentation, LIGGGHTS best practices
+
+    static MaterialProperties demGlassBeads() {
+        MaterialProperties m;
+        m.density = 2500.0;              // Real density
+        m.youngs_modulus = 5e6;          // 5 MPa (1000x softer than real!)
+        m.poisson_ratio = 0.25;
+        m.friction_static = 0.3;
+        m.friction_rolling = 0.01;
+        m.restitution_coeff = 0.9;       // High for glass
+        m.cohesion_energy = 0.0;
+        return m;
+    }
+
+    static MaterialProperties demSand() {
+        MaterialProperties m;
+        m.density = 1600.0;              // Real density
+        m.youngs_modulus = 1e6;          // 1 MPa effective modulus
+        m.poisson_ratio = 0.3;
+        m.friction_static = 0.5;         // Higher friction for sand
+        m.friction_rolling = 0.02;
+        m.restitution_coeff = 0.6;       // More inelastic
+        m.cohesion_energy = 0.0;
+        return m;
+    }
+
+    static MaterialProperties demSteel() {
+        MaterialProperties m;
+        m.density = 7850.0;              // Real density
+        m.youngs_modulus = 10e6;         // 10 MPa effective (soft for DEM)
+        m.poisson_ratio = 0.3;
+        m.friction_static = 0.4;
+        m.friction_rolling = 0.001;      // Very low rolling resistance
+        m.restitution_coeff = 0.7;
+        m.cohesion_energy = 0.0;
         return m;
     }
 

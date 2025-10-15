@@ -48,8 +48,8 @@ public:
           neighbor_skin(0),
           max_particle_radius(0)
     {
-        // Add default material (glass beads)
-        materials.push_back(MaterialProperties::glassBeads());
+        // Add default DEM-calibrated material (glass beads with effective E)
+        materials.push_back(MaterialProperties::demGlassBeads());
     }
 
     // Add a particle
@@ -112,8 +112,11 @@ public:
     }
 
     // Calculate critical timestep based on Rayleigh criterion
-    // dt = 0.17 * sqrt(m / K) where K is stiffness
-    real calculateCriticalTimestep() const {
+    // Rayleigh wave propagation: dt_R = π*R / c_R
+    // where c_R ≈ 0.87 * sqrt(G/ρ) is Rayleigh wave speed
+    // Safety factor: use 10-20% of Rayleigh timestep
+    // Reference: LIGGGHTS documentation, O'Sullivan 2011
+    real calculateRayleighTimestep() const {
         if (particles.empty()) return 1e-5;
 
         real min_dt = 1e10;
@@ -123,16 +126,63 @@ public:
 
             const auto& mat = materials[p.material_id];
 
-            // Simplified stiffness estimate: K ~ E * r
-            real K = mat.youngs_modulus * p.radius;
-            real dt_particle = 0.17 * std::sqrt(p.mass / K);
+            // Shear modulus: G = E / (2*(1+ν))
+            real G = mat.youngs_modulus / (2.0 * (1.0 + mat.poisson_ratio));
 
-            if (dt_particle < min_dt) {
-                min_dt = dt_particle;
+            // Rayleigh wave speed: c_R ≈ 0.87 * sqrt(G/ρ)
+            real c_rayleigh = 0.87 * std::sqrt(G / mat.density);
+
+            // Rayleigh timestep: dt_R = π*R / c_R
+            real dt_r = M_PI * p.radius / c_rayleigh;
+
+            if (dt_r < min_dt) {
+                min_dt = dt_r;
             }
         }
 
-        return min_dt;
+        // Safety factor: 20% of Rayleigh timestep (conservative)
+        return 0.2 * min_dt;
+    }
+
+    // Legacy function - now calls proper Rayleigh calculation
+    real calculateCriticalTimestep() const {
+        return calculateRayleighTimestep();
+    }
+
+    // Calculate Hertz timestep for dynamic collisions
+    // dt_H = 2.87 * (m_eff^2 / (R_eff * E_eff^2 * v_max))^0.2
+    // Reference: LIGGGHTS fix check/timestep/gran
+    real calculateHertzTimestep(real v_max = 1.0) const {
+        if (particles.empty()) return 1e-5;
+
+        real min_dt = 1e10;
+
+        for (size_t i = 0; i < particles.size(); i++) {
+            if (particles[i].is_fixed) continue;
+
+            for (size_t j = i+1; j < particles.size(); j++) {
+                if (particles[j].is_fixed) continue;
+
+                const auto& p1 = particles[i];
+                const auto& p2 = particles[j];
+                const auto& mat1 = materials[p1.material_id];
+                const auto& mat2 = materials[p2.material_id];
+
+                real m_eff = MaterialProperties::effectiveMass(p1.mass, p2.mass);
+                real r_eff = MaterialProperties::effectiveRadius(p1.radius, p2.radius);
+                real E_eff = MaterialProperties::effectiveYoungs(mat1, mat2);
+
+                // Hertz timestep formula
+                real dt_h = 2.87 * std::pow(m_eff * m_eff / (r_eff * E_eff * E_eff * v_max), 0.2);
+
+                if (dt_h < min_dt) {
+                    min_dt = dt_h;
+                }
+            }
+        }
+
+        // Safety factor: 10% of Hertz timestep
+        return 0.1 * min_dt;
     }
 
     // Get domain size
