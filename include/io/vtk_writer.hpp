@@ -2,10 +2,12 @@
 #define EMS_DEM_VTK_WRITER_HPP
 
 #include "core/domain.hpp"
+#include "geometry/triangle.hpp"
 #include <string>
 #include <fstream>
 #include <iomanip>
 #include <sstream>
+#include <vector>
 
 namespace emsdem {
 
@@ -129,6 +131,46 @@ public:
 
         file.close();
         std::cout << "Wrote VTK file: " << filename << " (" << nparticles << " particles)" << std::endl;
+    }
+
+    /**
+     * Write boundary mesh to VTK file
+     * @param triangles Vector of triangles forming the boundary
+     * @param filename Output filename
+     */
+    static void writeBoundary(const std::vector<Triangle>& triangles, const std::string& filename) {
+        std::ofstream file(filename);
+        if (!file.is_open()) {
+            std::cerr << "Failed to open file: " << filename << std::endl;
+            return;
+        }
+
+        size_t ntriangles = triangles.size();
+
+        // Write VTK header
+        file << "# vtk DataFile Version 3.0\n";
+        file << "EMS-DEM Boundary Mesh\n";
+        file << "ASCII\n";
+        file << "DATASET POLYDATA\n\n";
+
+        // Write points (triangle vertices)
+        file << "POINTS " << (ntriangles * 3) << " float\n";
+        for (const auto& tri : triangles) {
+            file << tri.v0.x << " " << tri.v0.y << " " << tri.v0.z << "\n";
+            file << tri.v1.x << " " << tri.v1.y << " " << tri.v1.z << "\n";
+            file << tri.v2.x << " " << tri.v2.y << " " << tri.v2.z << "\n";
+        }
+        file << "\n";
+
+        // Write triangles
+        file << "POLYGONS " << ntriangles << " " << (ntriangles * 4) << "\n";
+        for (size_t i = 0; i < ntriangles; i++) {
+            file << "3 " << (i*3) << " " << (i*3+1) << " " << (i*3+2) << "\n";
+        }
+        file << "\n";
+
+        file.close();
+        std::cout << "Wrote boundary VTK file: " << filename << " (" << ntriangles << " triangles)" << std::endl;
     }
 
     /**

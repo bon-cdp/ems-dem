@@ -68,14 +68,35 @@ int main(int argc, char** argv) {
     }
 
     std::cout << "  Box: " << box_mesh.numTriangles() << " triangles\n";
-    std::cout << "  Pipe: " << pipe_mesh.numTriangles() << " triangles\n\n";
+    std::cout << "  Pipe: " << pipe_mesh.numTriangles() << " triangles\n";
+
+    // Get bounding boxes to understand geometry
+    Vec3 box_min, box_max;
+    box_mesh.getBounds(box_min, box_max);
+    std::cout << "  Box bounds: (" << box_min.x << ", " << box_min.y << ", " << box_min.z << ") to ("
+              << box_max.x << ", " << box_max.y << ", " << box_max.z << ")\n";
+
+    // Center the box at origin (translate so center is at 0,0,0)
+    Vec3 box_center = (box_min + box_max) * 0.5;
+    Vec3 offset = Vec3(0, 0, 0) - box_center;
+    box_mesh.translate(offset);
+    pipe_mesh.translate(offset);
+
+    box_mesh.getBounds(box_min, box_max);
+    std::cout << "  After centering: (" << box_min.x << ", " << box_min.y << ", " << box_min.z << ") to ("
+              << box_max.x << ", " << box_max.y << ", " << box_max.z << ")\n";
+
+    // Write boundary geometry to VTK for visualization
+    VTKWriter::writeBoundary(box_mesh.triangles, "results/boundary_box.vtk");
+    VTKWriter::writeBoundary(pipe_mesh.triangles, "results/boundary_pipe.vtk");
+    std::cout << "\n";
 
     // ========== Particle Injection Setup ==========
     std::cout << "Setting up continuous particle injection...\n";
 
-    // Square injection region (centered above origin)
+    // Square injection region (centered at origin, inside the box)
     const real inject_width = 0.08;  // 8cm x 8cm square region
-    const real inject_height = 0.25; // Injection height above origin
+    const real inject_height = 0.10; // Injection height: 10cm above box bottom (well inside box)
     const real inject_x_min = -inject_width / 2;
     const real inject_x_max = inject_width / 2;
     const real inject_z_min = -inject_width / 2;
