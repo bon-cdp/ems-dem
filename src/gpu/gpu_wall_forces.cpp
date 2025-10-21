@@ -44,12 +44,9 @@ __global__ void computeParticleWallForcesKernel(
             if (overlap <= 0) continue;  // No contact
 
             // Normal direction (from wall to particle)
+            // This is correct: normal should point from closest point toward particle center
+            // Force will push particle away from wall in this direction
             Vec3 normal = to_particle / dist;
-
-            // Ensure normal points away from wall (same direction as triangle normal)
-            if (normal.dot(tri.normal) < 0) {
-                normal = -normal;
-            }
 
             // Compute boundary velocity at contact point
             // This handles CONVEYOR, TRANSLATING, and ROTATING boundaries
@@ -80,6 +77,7 @@ __global__ void computeParticleWallForcesKernel(
             real ln_e = logf(e_rest);
             real eta_n = -2.0f * sqrtf(m_i * k_n) * ln_e / sqrtf(M_PI * M_PI + ln_e * ln_e);
 
+            // Standard DEM damping (eta_n is negative, adds damping when approaching)
             real F_n_mag = k_n * overlap + eta_n * v_n;
             Vec3 F_normal = normal * F_n_mag;
 

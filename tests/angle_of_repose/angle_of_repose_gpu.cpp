@@ -30,12 +30,13 @@ int main(int argc, char** argv) {
     const real box_size = 0.3;           // 30 cm box
 
     // Particle injection parameters
-    const real mass_flow_rate_tonnes_per_hour = 1000.0;  // 1000 tonnes/hour
-    const real mass_flow_rate = mass_flow_rate_tonnes_per_hour * 1000.0 / 3600.0;  // kg/s
+    const real mass_flow_rate_kg_per_minute = 100.0;  // 100 kg/minute (reasonable flow rate)
+    const real mass_flow_rate = mass_flow_rate_kg_per_minute / 60.0;  // Convert to kg/s
     const real injection_duration = 2.0;  // Inject for first 2 seconds
 
     const real dt_target = 1e-4;         // Target timestep: 1e-4 s (user requirement)
     const int  output_interval = 100;    // Output every 100 steps (0.01s intervals)
+    const int  insert_every = 500;       // Insert particles every N timesteps (LIGGGHTS-style)
     const real sim_time = 5.0;           // Total simulation: 5 seconds
 
     // ========== Setup Domain ==========
@@ -110,7 +111,7 @@ int main(int argc, char** argv) {
     // Calculate maximum particles needed (pre-allocate)
     int max_particles = static_cast<int>(particles_per_second * injection_duration * 1.2);  // 20% buffer
 
-    std::cout << "  Flow rate: " << mass_flow_rate_tonnes_per_hour << " tonnes/hr ("
+    std::cout << "  Flow rate: " << mass_flow_rate_kg_per_minute << " kg/min ("
               << mass_flow_rate << " kg/s)\n";
     std::cout << "  Particle mass: " << particle_mass * 1000 << " grams\n";
     std::cout << "  Injection rate: " << particles_per_second << " particles/second\n";
@@ -209,28 +210,49 @@ int main(int argc, char** argv) {
     std::cout << "===========================================\n\n";
 
     while (current_time < sim_time) {
-        // ========== Particle Injection ==========
-        if (current_time < injection_duration) {
-            // Calculate how many particles should have been injected by now
-            particles_injected_exact += particles_per_second * dt;
-            int target_particles = static_cast<int>(particles_injected_exact);
+        // ========== Particle Injection (LIGGGHTS-style batching) ==========
+        if (current_time < injection_duration && step % insert_every == 0) {
+            // Calculate particles to inject in this batch
+            // particles_per_batch = rate * time_between_insertions
+            real time_between_insertions = insert_every * dt;
+            int particles_to_inject = static_cast<int>(particles_per_second * time_between_insertions);
 
-            // Inject particles up to target
-            while (num_particles_active < target_particles && num_particles_active < max_particles) {
+            // Inject batch of particles
+            int injected_this_batch = 0;
+            for (int attempt = 0; attempt < particles_to_inject * 10 && injected_this_batch < particles_to_inject; attempt++) {
+                if (num_particles_active >= max_particles) break;
+
                 // Create particle at injection height with random x,z position
                 real x = x_dist(gen);
                 real z = z_dist(gen);
                 real y = inject_height + y_jitter(gen);
                 Vec3 pos(x, y, z);
 
-                Particle p(pos, particle_radius, particle_density, 0);
-                p.id = num_particles_active;
-                domain.addParticle(p);
-                num_particles_active++;
+                // Check if this position overlaps with existing particles (simple check)
+                bool overlap = false;
+                if (domain.particles.size() > 0) {
+                    // Only check last few particles for efficiency
+                    int check_start = std::max(0, (int)domain.particles.size() - 50);
+                    for (int i = check_start; i < domain.particles.size(); i++) {
+                        real dist_sq = (domain.particles[i].position - pos).lengthSquared();
+                        if (dist_sq < (2.0 * particle_radius) * (2.0 * particle_radius)) {
+                            overlap = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!overlap) {
+                    Particle p(pos, particle_radius, particle_density, 0);
+                    p.id = num_particles_active;
+                    domain.addParticle(p);
+                    num_particles_active++;
+                    injected_this_batch++;
+                }
             }
 
-            // Copy new particles to GPU (only copy what's needed)
-            if (domain.particles.size() > 0) {
+            // Copy all particles to GPU after batch injection
+            if (injected_this_batch > 0) {
                 particles_gpu.copyFromHost(domain);
             }
         }

@@ -79,6 +79,7 @@ __global__ void computeContactForcesKernel(
         real ln_e = logf(e_rest);
         real eta_n = -2.0 * sqrtf(m_eff * k_n) * ln_e / sqrtf(M_PI * M_PI + ln_e * ln_e);
 
+        // Standard DEM damping (eta_n is negative, adds damping when approaching)
         real F_n_mag = k_n * overlap + eta_n * v_n;
         Vec3 F_normal = normal * F_n_mag;
 

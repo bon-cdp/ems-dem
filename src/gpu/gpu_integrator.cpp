@@ -89,8 +89,9 @@ void positionUpdate(ParticleDataGPU& particles, real dt) {
 }
 
 void velocityFullStep(ParticleDataGPU& particles, real dt) {
-    // Same as half-step
-    velocityHalfStep(particles, dt);
+    // Complete the velocity update (second half of Velocity Verlet)
+    // This is the same kernel as half-step, just called with the correct half-timestep
+    velocityHalfStep(particles, dt);  // velocityHalfStep internally uses 0.5*dt
 }
 
 void integrate(ParticleDataGPU& particles, const Vec3& gravity, real dt) {
