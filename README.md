@@ -1,6 +1,10 @@
 # EMS-DEM
 
 **ROCm-Accelerated Discrete Element Method for Bulk Material Handling**
+rocm maybe not required, but a part of the bigger finetoo project im working on - https://docs.google.com/document/d/15P4b0tUrXnWHMnnZTht2m1aXPjktOb4J83BGHysybPo/edit?tab=t.0 - 
+
+hopefully we will build claude code for engineering analysis and design
+
 
 A high-performance DEM simulator designed for industrial bulk materials applications including:
 - Conveyor transfer chutes
